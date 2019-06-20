@@ -1,0 +1,20 @@
+# -- Gitea should be installed in it's own namespace, so when it becomes a multi-container group, it'll be isolated
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitea
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web
+  namespace: gitea
+  labels:
+    app: gitea
+data:
+  APP_NAME: "Antimatter Studios Git Repository"
+---
+
+
+

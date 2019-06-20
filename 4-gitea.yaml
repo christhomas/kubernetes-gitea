@@ -1,0 +1,91 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: web
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  serviceName: gitea
+  replicas: 1
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        namespace: gitea
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 50Gi
+        selector:
+          matchLabels:
+            volume-name: gitea-data
+  template:
+    metadata:
+      labels:
+        app: gitea-web
+    spec:
+      nodeSelector:
+        gitea: "true"
+      containers:
+        - name: gitea
+          image: gitea/gitea:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+#          envFrom:
+#            - configMapRef:
+#                name: web
+#            - configMapRef:
+#                name: postgres
+#            - secretRef:
+#                name: web
+#            - secretRef:
+#                name: postgres
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 22
+              name: ssh
+              protocol: TCP
+#          resources:
+#            limits:
+#              cpu: "1000m"
+#              memory: "4Gi"
+#            requests:
+#              cpu: "250m"
+#              memory: "500Mi"
+          volumeMounts:
+            - name: data
+              mountPath: /home/git/data
+#            - name: registry-certs
+#              mountPath: /certs
+---
+
+# -- Service for the Ingress to target
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  selector:
+    app: gitea-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: ssh
+      port: 10022
+      targetPort: 22
