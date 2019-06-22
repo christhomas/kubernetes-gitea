@@ -1,0 +1,77 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: registry
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  serviceName: registry
+  replicas: 1
+  volumeClaimTemplates:
+    - metadata:
+        name: docker-registry
+        namespace: gitea
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 25Gi
+        selector:
+          matchLabels:
+            volume-name: gitea-docker-registry
+  template:
+    metadata:
+      labels:
+        app: gitea-registry
+    spec:
+      nodeSelector:
+        gitea: "true"
+      containers:
+        - name: registry
+          image: registry:latest
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: registry
+            - secretRef:
+                name: registry
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "100Mi"
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+          ports:
+            - name: registry
+              containerPort: 5000
+          volumeMounts:
+            - name: docker-registry
+              mountPath: /registry
+---
+
+# -- Service for the Ingress to target
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  selector:
+    app: gitea-registry
+  ports:
+    - name: registry
+      port: 5000
+      targetPort: 5000

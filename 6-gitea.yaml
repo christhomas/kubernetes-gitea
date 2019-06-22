@@ -33,42 +33,36 @@ spec:
           imagePullPolicy: Always
           livenessProbe:
             tcpSocket:
-              port: 80
+              port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
-              port: 80
+              port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
-#          envFrom:
-#            - configMapRef:
-#                name: web
-#            - configMapRef:
-#                name: postgres
-#            - secretRef:
-#                name: web
-#            - secretRef:
-#                name: postgres
+          env:
+            - name: USER_UID
+              value: "1000"
+            - name: USER_GID
+              value: "1000"
+          envFrom:
+            - configMapRef:
+                name: web
+            - configMapRef:
+                name: postgres
+            - secretRef:
+                name: postgres
           ports:
-            - containerPort: 80
+            - containerPort: 3000
               name: http
               protocol: TCP
             - containerPort: 22
               name: ssh
               protocol: TCP
-#          resources:
-#            limits:
-#              cpu: "1000m"
-#              memory: "4Gi"
-#            requests:
-#              cpu: "250m"
-#              memory: "500Mi"
           volumeMounts:
             - name: data
-              mountPath: /home/git/data
-#            - name: registry-certs
-#              mountPath: /certs
+              mountPath: /data
 ---
 
 # -- Service for the Ingress to target
@@ -85,7 +79,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 80
+      targetPort: 3000
     - name: ssh
       port: 10022
       targetPort: 22

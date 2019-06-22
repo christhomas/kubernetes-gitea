@@ -1,0 +1,72 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  serviceName: postgres
+  replicas: 1
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres
+        namespace: gitea
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+        selector:
+          matchLabels:
+            volume-name: gitea-postgres
+  template:
+    metadata:
+      labels:
+        app: gitea-postgres
+    spec:
+      nodeSelector:
+        gitea: "true"
+      containers:
+        - name: postgres
+          image: postgres:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: postgres
+            - secretRef:
+                name: postgres
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          volumeMounts:
+            - name: postgres
+              mountPath: /var/lib/postgresql/data
+---
+
+# -- Service for the Ingress to target
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  selector:
+    app: gitea-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

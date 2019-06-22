@@ -11,3 +11,34 @@ spec:
     storage: 50Gi
   hostPath:
     path: /mnt/kubernetes/gitea-data
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitea-postgres
+  namespace: gitea
+  labels:
+    volume-name: gitea-postgres
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /mnt/kubernetes/gitea-postgres
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitea-docker-registry
+  namespace: gitea
+  labels:
+    volume-name: gitea-docker-registry
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  capacity:
+    storage: 25Gi
+  hostPath:
+    path: /mnt/kubernetes/gitea-registry
+---

@@ -1,0 +1,55 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gitea-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:alpine
+          resources:
+            limits:
+              cpu: "250m"
+              memory: "250Mi"
+            requests:
+              cpu: "250m"
+              memory: "125Mi"
+          ports:
+            - name: redis
+              containerPort: 6379
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["redis-cli","ping"]
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+---
+
+# -- Service for the Redis pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  selector:
+    app: gitea-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+---

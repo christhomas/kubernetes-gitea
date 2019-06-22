@@ -14,7 +14,42 @@ metadata:
     app: gitea
 data:
   APP_NAME: "Antimatter Studios Git Repository"
+  SSH_PORT: "22"
+  HTTP_PORT: "80"
+  INSTALL_LOCK: "true"
+  DISABLE_REGISTRATION: "true"
 ---
 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+  namespace: gitea
+  labels:
+    app: gitea
+data:
+  DB_TYPE: "postgres"
+  DB_HOST: "postgres.gitea:5435"
+  DB_NAME: "gitea"
+  DB_USER: "root"
+---
 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry
+  namespace: gitea
+  labels:
+    app: gitea
+data:
+  REGISTRY_LOG_LEVEL: "info"
+  REGISTRY_STORAGE_DELETE_ENABLED: "true"
+  REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: "/registry"
+  REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: "redis"
+  REGISTRY_REDIS_ADDR: "redis.gitea:6379"
+  # REGISTRY_AUTH_TOKEN_REALM: "https://gitea.antimatter-studios.com/jwt/auth"
+  # REGISTRY_AUTH_TOKEN_SERVICE: "container_registry"
+  # REGISTRY_AUTH_TOKEN_ISSUER: "gitea-issuer"
+  # REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: "/registry/certs/registry.crt"
+---
 
