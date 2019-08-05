@@ -8,16 +8,19 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: web
+  name: gitea
   namespace: gitea
   labels:
     app: gitea
 data:
+  RUN_MODE: "prod"
   APP_NAME: "Antimatter Studios Git Repository"
-  SSH_PORT: "22"
-  HTTP_PORT: "80"
   INSTALL_LOCK: "true"
+  ROOT_URL: "https://gitea.antimatter-studios.com"
+  SSH_DOMAIN: "gitea.antimatter-studios.com"
+  SSH_PORT: "10022"
   DISABLE_REGISTRATION: "true"
+  REQUIRE_SIGNIN_VIEW: "true"
 ---
 
 apiVersion: v1
@@ -29,9 +32,29 @@ metadata:
     app: gitea
 data:
   DB_TYPE: "postgres"
-  DB_HOST: "postgres.gitea:5435"
+  DB_HOST: "postgres.gitea:5432"
   DB_NAME: "gitea"
   DB_USER: "root"
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drone
+  namespace: gitea
+  labels:
+      app: gitea
+data:
+  DRONE_KUBERNETES_ENABLED: "true"
+  DRONE_KUBERNETES_NAMESPACE: "gitea"
+  DRONE_GITEA_SERVER: "https://gitea.antimatter-studios.com"
+  DRONE_RPC_SECRET: "123098123098123098123"
+  DRONE_SERVER_HOST: "gitea-drone.antimatter-studios.com"
+  DRONE_SERVER_PROTO: "https"
+  DRONE_GIT_ALWAYS_AUTH: "true"
+  DRONE_GITEA_CLIENT_ID: "9fadde88-05f6-4bee-bffc-9ede16eab4cc"
+  DRONE_GITEA_CLIENT_SECRET: "bOr_wcmiTEeE-CTTg1qU0np1el1fcZUqY_m0tSh2h2A="
+
 ---
 
 apiVersion: v1

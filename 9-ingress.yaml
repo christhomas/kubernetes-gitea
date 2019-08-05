@@ -15,16 +15,23 @@ spec:
     hosts:
       - "gitea.antimatter-studios.com"
       - "gitea-registry.antimatter-studios.com"
+      - "gitea-drone.antimatter-studios.com"
   rules:
     - host: gitea.antimatter-studios.com
       http:
         paths:
-        - backend:
-            serviceName: web
-            servicePort: 80
+          - backend:
+              serviceName: gitea
+              servicePort: 80
+    - host: gitea-drone.antimatter-studios.com
+      http:
+        paths:
+          - backend:
+              serviceName: drone
+              servicePort: 80
     - host: gitea-registry.antimatter-studios.com
       http:
         paths:
-        - backend:
-            serviceName: registry
-            servicePort: 5000
+          - backend:
+              serviceName: registry
+              servicePort: 5000

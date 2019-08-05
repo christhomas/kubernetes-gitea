@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
-  name: web
+  name: gitea
   namespace: gitea
   labels:
     app: gitea
@@ -29,7 +29,7 @@ spec:
         gitea: "true"
       containers:
         - name: gitea
-          image: gitea/gitea:latest
+          image: christhomas/gitea:latest
           imagePullPolicy: Always
           livenessProbe:
             tcpSocket:
@@ -48,7 +48,7 @@ spec:
               value: "1000"
           envFrom:
             - configMapRef:
-                name: web
+                name: gitea
             - configMapRef:
                 name: postgres
             - secretRef:
@@ -57,19 +57,19 @@ spec:
             - containerPort: 3000
               name: http
               protocol: TCP
-            - containerPort: 22
+            - containerPort: 10022
               name: ssh
               protocol: TCP
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /data/git
 ---
 
 # -- Service for the Ingress to target
 apiVersion: v1
 kind: Service
 metadata:
-  name: web
+  name: gitea
   namespace: gitea
   labels:
     app: gitea
@@ -82,4 +82,4 @@ spec:
       targetPort: 3000
     - name: ssh
       port: 10022
-      targetPort: 22
+      targetPort: 10022

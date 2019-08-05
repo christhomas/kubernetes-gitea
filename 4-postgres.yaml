@@ -41,11 +41,27 @@ spec:
               port: 5432
             initialDelaySeconds: 30
             periodSeconds: 10
-          envFrom:
-            - configMapRef:
-                name: postgres
-            - secretRef:
-                name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: DB_PASSWD
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_USER
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_NAME
           ports:
             - containerPort: 5432
               name: postgres
