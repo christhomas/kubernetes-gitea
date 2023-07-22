@@ -1,0 +1,5 @@
+# -- Gitea should be installed in it's own namespace, so when it becomes a multi-container group, it'll be isolated
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}

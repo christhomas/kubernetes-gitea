@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: action-runner
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.labels.actionRunner | quote }}
+  replicas: {{ .Values.actions.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.labels.actionRunner }}
+    spec:
+      volumes:
+      - name: docker-certs
+        emptyDir: {}
+      - name: gitea-token
+        emptyDir: {}
+      - name: scripts
+        configMap:
+          name: runner-scripts
+          defaultMode: 0755
+      initContainers:
+        - name: create-token
+          image: {{ .Values.images.postgres }}
+          command: ["/opt/create-token.sh"]
+          envFrom:
+            - configMapRef:
+                name: postgres
+            - secretRef:
+                name: postgres
+          volumeMounts:
+            - name: gitea-token
+              mountPath: /opt/gitea
+            - name: scripts
+              subPath: create-token.sh
+              mountPath: /opt/create-token.sh
+              readOnly: true
+      containers:
+      - name: gitea-actions-runner
+        image: {{ .Values.images.actions }}
+        imagePullPolicy: Always
+        command: ["/opt/act/entrypoint.sh"]
+        env:
+        - name: DOCKER_HOST
+          value: tcp://localhost:2376
+        - name: DOCKER_CERT_PATH
+          value: /certs/client
+        - name: DOCKER_TLS_VERIFY
+          value: "1"
+        - name: GITEA_INSTANCE_URL
+          value: http://gitea.{{ .Values.namespace }}:{{ .Values.web.port }}
+        volumeMounts:
+          - name: docker-certs
+            mountPath: /certs 
+          - name: gitea-token
+            mountPath: /opt/gitea
+          - name: scripts
+            subPath: entrypoint.sh
+            mountPath: /opt/act/entrypoint.sh
+            readOnly: true
+      - name: daemon
+        image: {{ .Values.images.docker }}
+        securityContext:
+          privileged: true
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: /certs
+        volumeMounts:
+        - name: docker-certs
+          mountPath: /certs

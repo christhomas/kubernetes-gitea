@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitea
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.labels.web }}
+  serviceName: gitea
+  replicas: 1
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ .Values.volumes.data.name }}
+        namespace: {{ .Values.namespace }}
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.volumes.data.size }}
+        selector:
+          matchLabels:
+            volume-name: {{ .Values.volumes.data.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.labels.web }}
+    spec:
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{ .Values.nodeSelector.name}}: {{ .Values.nodeSelector.value | quote }}
+      {{- end }}
+      containers:
+        - name: gitea
+          image: {{ .Values.images.web }}
+          imagePullPolicy: Always
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          env:
+            - name: BITNAMI_DEBUG
+              value: "true"
+            - name: USER_UID
+              value: "1000"
+            - name: USER_GID
+              value: "1000"
+            - name: GITEA_DATABASE_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_TYPE
+            - name: GITEA_DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_HOST
+            - name: GITEA_DATABASE_PORT_NUMBER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_PORT
+            - name: GITEA_DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_NAME
+            - name: GITEA_DATABASE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres
+                  key: DB_USER
+            - name: GITEA_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: DB_PASS
+          envFrom:
+            - configMapRef:
+                name: gitea
+            - secretRef:
+                name: gitea
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.ssh.port }}
+              name: ssh
+              protocol: TCP
+          volumeMounts:
+            - name: {{ .Values.volumes.data.name }}
+              mountPath: /bitnami/gitea
+---
+
+# -- Service for the Ingress to target
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+spec:
+  selector:
+    app: {{ .Values.labels.web }}
+  ports:
+    - name: http
+      port: {{ .Values.web.port }}
+      targetPort: 3000
+    - name: ssh
+      port: {{ .Values.ssh.port }}
+      targetPort: {{ .Values.ssh.port }}

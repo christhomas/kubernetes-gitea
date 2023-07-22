@@ -1,0 +1,29 @@
+# -- Ingress configuration for gitea
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitea
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ssl.certClusterIssuer }}
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.ssl.redirect | quote }}
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.web.maxUpload }}
+spec:
+  ingressClassName: {{ .Values.web.ingressClass }}
+  tls:
+  - secretName: tls-gitea
+    hosts:
+      - {{ .Values.web.domain | quote }}
+  rules:
+    - host: {{ .Values.web.domain }}
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: gitea
+                port:
+                  number: {{ .Values.web.port }}

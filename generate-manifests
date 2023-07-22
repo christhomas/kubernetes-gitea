@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+if [ -z "$(command helm)" ]; then
+    echo "Helm must be installed to generate manifests"
+    exit 1
+fi
+
+DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+
+if [ ! -f "${DIR}/values.yaml" ]; then
+    echo "There was no values.yaml file, one was copied for you, edit it and run this command again"
+    cp ${DIR}/values.yaml.template ${DIR}/values.yaml
+    exit 1
+fi
+
+helm template ${DIR}

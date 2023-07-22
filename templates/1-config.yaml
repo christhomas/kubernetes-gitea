@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitea
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+data:
+  GITEA_APP_NAME: {{ .Values.web.name | quote }}
+  GITEA_RUN_MODE: {{ .Values.web.mode | quote }}
+  GITEA_INSTALL_LOCK: {{ .Values.web.installLock | quote }}
+  GITEA_DOMAIN: {{ .Values.web.domain | quote }}
+  GITEA_ROOT_URL: {{ printf "%s://%s" .Values.web.protocol .Values.web.domain | quote }}
+  GITEA_START_SSH_SERVER: {{ .Values.ssh.enabled | quote }}
+  GITEA_SSH_DOMAIN: {{ .Values.ssh.domain | quote }}
+  GITEA_SSH_PORT: {{ .Values.ssh.port | quote }}
+  GITEA_SSH_LISTEN_PORT: {{ .Values.ssh.port | quote }}
+  GITEA_ENABLE_SSH_LOG: {{ .Values.logging.ssh | quote }}
+  GITEA_LEVEL: {{ .Values.logging.level | quote }}
+  GITEA_ACTIONS_ENABLE: {{ .Values.actions.enabled | quote }}
+  GITEA_DISABLE_REGISTRATION: {{ .Values.web.disableRegistration | quote }}
+  GITEA_REQUIRE_SIGNIN_VIEW: {{ .Values.web.requireSigninView | quote }}
+  GITEA_ADMIN_USER: {{ .Values.admin.user | quote }}
+  GITEA_ADMIN_EMAIL: {{ .Values.admin.email | quote }}
+  GITEA_PACKAGES: {{ .Values.packages.enabled | quote }}
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+data:
+  DB_TYPE: "postgres"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "gitea"
+  DB_USER: "root"
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-scripts
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.labels.app }}
+data:
+  create-token.sh: |-
+    #!/usr/bin/env bash
+    tr -dc A-Za-z0-9 </dev/urandom | head -c 40 > /opt/gitea/token
+    echo "TOKEN CREATED"
+    GITEA_RUNNER_REGISTRATION_TOKEN=$(/bin/cat /opt/gitea/token);
+    QUERY="insert into public.action_runner_token (token, owner_id, repo_id, is_active, created, updated) values ('$GITEA_RUNNER_REGISTRATION_TOKEN', 0, 0, 'f', FLOOR(EXTRACT(EPOCH FROM current_timestamp)), FLOOR(EXTRACT(EPOCH FROM current_timestamp)));"
+    PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -c "${QUERY}"
+    echo "TOKEN INSERTED"
+
+  entrypoint.sh: |-
+    #!/usr/bin/env bash
+    export GITEA_RUNNER_REGISTRATION_TOKEN=$(cat /opt/gitea/token)
+    while ! nc -z localhost 2376 </dev/null; do 
+      echo 'waiting for docker daemon...'; 
+      sleep 5; 
+    done; 
+    /sbin/tini -s -- /opt/act/run.sh

@@ -1,0 +1,70 @@
+# copy this file to values.yaml and change the values in order to generate the manifests for your system
+
+namespace: gitea
+
+nodeSelector:
+  name: gitea
+  value: true
+
+labels:
+  app: gitea
+  web: gitea-web
+  postgres: gitea-postgres
+  redis: gitea-redis
+  actionRunner: gitea-actions-runner
+
+images:
+  web: christhomas/bitnami-gitea:latest
+  postgres: christhomas/sameersbn-postgresql:14
+  redis: redis:alpine
+  docker: docker:23.0.6-dind
+  actions: gitea/act_runner:nightly
+
+web:
+  name: Git Repository
+  protocol: https
+  domain: gitea.mydomain.com
+  port: 80
+  disableRegistration: true
+  requireSigninView: true
+  mode: dev
+  installLock: true
+  maxUpload: 2000m
+  ingressClass: ingress-nginx
+
+admin:
+  user: administrator
+  email: admin@mydomain.com
+  password: put-a-good-password-here
+
+database:
+  password: write-another-good-password-here
+
+ssl:
+  certClusterIssuer: letsencrypt-production
+  redirect: true
+
+ssh:
+  enabled: true
+  domain: git.mydomain.com
+  port: 10023
+
+actions:
+  enabled: true
+  replicaCount: 3
+
+packages:
+  enabled: true
+
+volumes:
+  mountLocation: /mnt/kubernetes
+  data: 
+    name: gitea-data
+    size: 50Gi
+  postgres:
+    name: gitea-postgres
+    size: 5Gi
+
+logging:
+  level: debug
+  ssh: true

@@ -1,35 +1,40 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: gitea
+  namespace: {{ .Values.namespace }}
   labels:
-    app: gitea
+    app: {{ .Values.labels.app }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.labels.postgres }}
   serviceName: postgres
   replicas: 1
   volumeClaimTemplates:
     - metadata:
         name: postgres
-        namespace: gitea
+        namespace: {{ .Values.namespace }}
       spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: 1Gi
+            storage: {{ .Values.volumes.postgres.size }}
         selector:
           matchLabels:
-            volume-name: gitea-postgres
+            volume-name: {{ .Values.volumes.postgres.name }}
   template:
     metadata:
       labels:
-        app: gitea-postgres
+        app: {{ .Values.labels.postgres }}
     spec:
+      {{- if .Values.nodeSelector }}
       nodeSelector:
-        gitea: "true"
+        {{ .Values.nodeSelector.name }}: {{ .Values.nodeSelector.value | quote }}
+      {{- end }}
       containers:
         - name: postgres
-          image: postgres:latest
+          image: {{ .Values.images.postgres }}
           imagePullPolicy: Always
           livenessProbe:
             tcpSocket:
@@ -41,34 +46,18 @@ spec:
               port: 5432
             initialDelaySeconds: 30
             periodSeconds: 10
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres
-                  key: DB_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres
-                  key: DB_PASSWD
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres
-                  key: DB_USER
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres
-                  key: DB_NAME
+          envFrom:
+            - configMapRef:
+                name: postgres
+            - secretRef:
+                name: postgres
           ports:
             - containerPort: 5432
               name: postgres
               protocol: TCP
           volumeMounts:
             - name: postgres
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
 ---
 
 # -- Service for the Ingress to target
@@ -76,12 +65,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: gitea
+  namespace: {{ .Values.namespace }}
   labels:
-    app: gitea
+    app: {{ .Values.labels.app }}
 spec:
   selector:
-    app: gitea-postgres
+    app: {{ .Values.labels.postgres }}
   ports:
     - name: postgres
       port: 5432
